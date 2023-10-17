@@ -9,33 +9,45 @@ const { authMiddleware } = require('./utils/auth');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Create new Apollo server and pass in schema data
-const server = new ApolloServer({
-  typeDefs,
-  resolvers,
-  context: ({ req }) => authMiddleware({ req }),
-});
+async function startServer() {
+  // Create new Apollo server and pass in schema data
+  const server = new ApolloServer({
+    typeDefs,
+    resolvers,
+    context: ({ req }) => authMiddleware({ req }),
+  });
 
-// Integrate Apollo server
-server.applyMiddleware({ app });
+  // Start the server
+  await server.start();
 
-// Middleware
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+  // Integrate Apollo server with Express application
+  server.applyMiddleware({ app });
 
-// Serve up static assets
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../client/build')));
+  // Middleware for parsing body and JSON
+  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json());
+
+  // Serve up static assets
+  if (process.env.NODE_ENV === 'production') {
+    app.use(express.static(path.join(__dirname, '../client/build')));
+  }
+
+  // If no API routes are hit then send the React app
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/build/index.html'));
+  });
+
+  // Connect to MongoDB database and start the Express.js server
+  db.once('open', () => {
+    app.listen(PORT, () => {
+      console.log(`🌍 Now listening on localhost:${PORT}`);
+      console.log(`Use GraphQL at http://localhost:${PORT}${server.graphqlPath}`);
+    });
+  });
 }
 
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/build/index.html'));
-});
-
-// Connect to the MongoDB database and start the Express.js server
-db.once('open', () => {
-  app.listen(PORT, () => {
-    console.log(`🌍 Now listening on localhost:${PORT}`);
-    console.log(`Use GraphQL at http://localhost:${PORT}${server.graphqlPath}`);
-  });
+// Execute the server start function
+startServer().catch((err) => {
+  console.error(err);
+  process.exit(1);
 });
