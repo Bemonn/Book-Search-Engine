@@ -46,18 +46,25 @@ function App() {
   // Handle user data and authentication status
   useEffect(() => {
     const token = AuthService.getToken();
+
     if (token) {
       setAuthenticated(true);
+
       if (error) {
-        console.error("Error loading user data:", error);
+        console.error("GraphQL query error:", error);
       }
-      if (data) {
+
+      if (!loading && data) {
         setUserData(data.me);
       }
     } else {
       setAuthenticated(false);
+
+      if (error) {
+        console.error("Authentication error:", error);
+      }
     }
-  }, [data, error]);
+  }, [data, error, loading]);
 
   // Conditional rendering based on data loading status
   if (loading) return <div>Loading...</div>;
