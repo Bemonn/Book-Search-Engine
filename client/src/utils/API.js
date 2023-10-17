@@ -1,56 +1,96 @@
-// route to get logged in user's info (needs the token)
-export const getMe = (token) => {
-  return fetch('/api/users/me', {
-    headers: {
-      'Content-Type': 'application/json',
-      authorization: `Bearer ${token}`,
-    },
+const GRAPHQL_ENDPOINT = '/graphql';
+
+const baseHeaders = {
+  'Content-Type': 'application/json',
+};
+
+const authHeaders = (token) => ({
+  ...baseHeaders,
+  authorization: `Bearer ${token}`,
+});
+
+const graphqlRequest = (query, variables = {}, token) => {
+  const headers = token ? authHeaders(token) : baseHeaders;
+
+  return fetch(GRAPHQL_ENDPOINT, {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify({ query, variables }),
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.json();
   });
+};
+
+export const getMe = (token) => {
+  const query = `
+    {
+      me {
+        id
+        name
+        email
+      }
+    }
+  `;
+  return graphqlRequest(query, {}, token);
 };
 
 export const createUser = (userData) => {
-  return fetch('/api/users', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(userData),
-  });
+  const mutation = `
+    mutation CreateUser($data: UserType!) {
+      createUser(data: $data) {
+        id
+        name
+        token
+      }
+    }
+  `;
+  return graphqlRequest(mutation, { data: userData });
 };
 
 export const loginUser = (userData) => {
-  return fetch('/api/users/login', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(userData),
-  });
+  const mutation = `
+    mutation LoginUser($data: LoginInput!) {
+      loginUser(data: $data) {
+        token
+        user {
+          id
+          name
+        }
+      }
+    }
+  `;
+  return graphqlRequest(mutation, { data: userData });
 };
 
-// save book data for a logged in user
 export const saveBook = (bookData, token) => {
-  return fetch('/api/users', {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(bookData),
-  });
+  const mutation = `
+    mutation SaveBook($data: BookInput!) {
+      saveBook(data: $data) {
+        id
+        title
+      }
+    }
+  `;
+  return graphqlRequest(mutation, { data: bookData }, token);
 };
 
-// remove saved book data for a logged in user
 export const deleteBook = (bookId, token) => {
-  return fetch(`/api/users/books/${bookId}`, {
-    method: 'DELETE',
-    headers: {
-      authorization: `Bearer ${token}`,
-    },
-  });
+  const mutation = `
+    mutation DeleteBook($bookId: ID!) {
+      deleteBook(bookId: $bookId) {
+        success
+        message
+      }
+    }
+  `;
+  return graphqlRequest(mutation, { bookId }, token);
 };
 
-// make a search to google books api
+
 // https://www.googleapis.com/books/v1/volumes?q=harry+potter
 export const searchGoogleBooks = (query) => {
   return fetch(`https://www.googleapis.com/books/v1/volumes?q=${query}`);
