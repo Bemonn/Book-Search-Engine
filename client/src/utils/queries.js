@@ -22,7 +22,6 @@ export const GET_ME = gql`
 
 export const SEARCH_BOOKS = gql`
   query SearchBooks($searchTerm: String!) {
-    // This assumes 'searchBooks' is defined in your server's schema
     searchBooks(searchTerm: $searchTerm) {
       bookId
       authors
@@ -30,6 +29,26 @@ export const SEARCH_BOOKS = gql`
       title
       image
       link
+    }
+  }
+`;
+
+// Define the SAVE_BOOK mutation
+export const SAVE_BOOK = gql`
+  mutation saveBook($input: BookInput!) {
+    saveBook(input: $input) {
+      _id
+      username
+      email
+      bookCount
+      savedBooks {
+        bookId
+        authors
+        description
+        title
+        image
+        link
+      }
     }
   }
 `;
