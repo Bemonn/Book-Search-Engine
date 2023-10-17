@@ -1,17 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useQuery, useMutation } from '@apollo/client';
-import {
-  Container,
-  Col,
-  Form,
-  Button,
-  Card,
-  Row
-} from 'react-bootstrap';
-
+import { useLazyQuery, useMutation } from '@apollo/client';
+import { Container, Col, Form, Button, Card, Row } from 'react-bootstrap';
 import Auth from '../utils/auth';
 import { saveBookIds, getSavedBookIds } from '../utils/localStorage';
-
 import { SEARCH_BOOKS, SAVE_BOOK } from '../utils/queries';
 
 const SearchBooks = () => {
@@ -19,28 +10,24 @@ const SearchBooks = () => {
   const [searchInput, setSearchInput] = useState('');
   const [savedBookIds, setSavedBookIds] = useState(getSavedBookIds());
 
-  useEffect(() => {
-    return () => saveBookIds(savedBookIds);
-  });
-
-  const { loading, error, data } = useQuery(SEARCH_BOOKS, {
-    variables: { searchTerm: searchInput }
-  });
-
+  const [getBooks, { loading, data }] = useLazyQuery(SEARCH_BOOKS);
   const [addBook] = useMutation(SAVE_BOOK);
 
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p>Error: {error.message}</p>;
+  useEffect(() => {
+    if (data) {
+      setSearchedBooks(data.books);
+    }
 
-  if (data) {
-    setSearchedBooks(data.books);
-  }
+    return () => saveBookIds(savedBookIds);
+  }, [data, savedBookIds]);
 
   const handleFormSubmit = (event) => {
     event.preventDefault();
     if (!searchInput) {
       return false;
     }
+
+    getBooks({ variables: { searchTerm: searchInput } });
   };
 
   const handleSaveBook = async (bookId) => {
@@ -52,17 +39,14 @@ const SearchBooks = () => {
     }
 
     try {
-      await addBook({
-        variables: {
-          input: bookToSave
-        }
-      });
-
+      await addBook({ variables: { input: bookToSave } });
       setSavedBookIds([...savedBookIds, bookToSave.bookId]);
     } catch (err) {
       console.error(err);
     }
   };
+
+  if (loading) return <p>Loading...</p>;
 
   return (
     <>
@@ -90,7 +74,6 @@ const SearchBooks = () => {
           </Form>
         </Container>
       </div>
-
       <Container>
         <h2 className='pt-5'>
           {searchedBooks.length
@@ -101,24 +84,15 @@ const SearchBooks = () => {
           {searchedBooks.map((book) => {
             return (
               <Col md="4" key={book.bookId}>
-                <Card border='dark'>
-                  {book.image ? (
-                    <Card.Img src={book.image} alt={`The cover for ${book.title}`} variant='top' />
-                  ) : null}
+                <Card border='dark' className='mb-3'>
+                  {book.image ? <Card.Img src={book.image} alt={`The cover for ${book.title}`} variant='top' /> : null}
                   <Card.Body>
                     <Card.Title>{book.title}</Card.Title>
                     <p className='small'>Authors: {book.authors}</p>
                     <Card.Text>{book.description}</Card.Text>
-                    {Auth.loggedIn() && (
-                      <Button
-                        disabled={savedBookIds?.some((savedBookId) => savedBookId === book.bookId)}
-                        className='btn-block btn-info'
-                        onClick={() => handleSaveBook(book.bookId)}>
-                        {savedBookIds?.some((savedBookId) => savedBookId === book.bookId)
-                          ? 'This book has already been saved!'
-                          : 'Save this Book!'}
-                      </Button>
-                    )}
+                    <Button className='btn-block btn-primary' onClick={() => handleSaveBook(book.bookId)}>
+                      Save this Book!
+                    </Button>
                   </Card.Body>
                 </Card>
               </Col>

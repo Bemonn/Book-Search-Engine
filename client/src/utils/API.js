@@ -29,9 +29,18 @@ export const getMe = (token) => {
   const query = `
     {
       me {
-        id
-        name
+        _id
+        username
         email
+        bookCount
+        savedBooks {
+          bookId
+          authors
+          description
+          title
+          image
+          link
+        }
       }
     }
   `;
@@ -40,58 +49,78 @@ export const getMe = (token) => {
 
 export const createUser = (userData) => {
   const mutation = `
-    mutation CreateUser($data: UserType!) {
-      createUser(data: $data) {
-        id
-        name
-        token
-      }
-    }
-  `;
-  return graphqlRequest(mutation, { data: userData });
-};
-
-export const loginUser = (userData) => {
-  const mutation = `
-    mutation LoginUser($data: LoginInput!) {
-      loginUser(data: $data) {
+    mutation addUser($username: String!, $email: String!, $password: String!) {
+      addUser(username: $username, email: $email, password: $password) {
         token
         user {
-          id
-          name
+          _id
+          username
         }
       }
     }
   `;
-  return graphqlRequest(mutation, { data: userData });
+  return graphqlRequest(mutation, userData);
+};
+
+export const loginUser = (userData) => {
+  const mutation = `
+    mutation login($email: String!, $password: String!) {
+      login(email: $email, password: $password) {
+        token
+        user {
+          _id
+          username
+        }
+      }
+    }
+  `;
+  return graphqlRequest(mutation, userData);
 };
 
 export const saveBook = (bookData, token) => {
   const mutation = `
-    mutation SaveBook($data: BookInput!) {
-      saveBook(data: $data) {
-        id
-        title
+    mutation saveBook($authors: [String], $description: String, $title: String, $bookId: String, $image: String, $link: String) {
+      saveBook(authors: $authors, description: $description, title: $title, bookId: $bookId, image: $image, link: $link) {
+        _id
+        username
+        email
+        bookCount
+        savedBooks {
+          bookId
+          authors
+          description
+          title
+          image
+          link
+        }
       }
     }
   `;
-  return graphqlRequest(mutation, { data: bookData }, token);
+  return graphqlRequest(mutation, bookData, token);
 };
 
 export const deleteBook = (bookId, token) => {
   const mutation = `
-    mutation DeleteBook($bookId: ID!) {
-      deleteBook(bookId: $bookId) {
-        success
-        message
+    mutation removeBook($bookId: String!) {
+      removeBook(bookId: $bookId) {
+        _id
+        username
+        email
+        bookCount
+        savedBooks {
+          bookId
+          authors
+          description
+          title
+          image
+          link
+        }
       }
     }
   `;
   return graphqlRequest(mutation, { bookId }, token);
 };
 
-
-// https://www.googleapis.com/books/v1/volumes?q=harry+potter
 export const searchGoogleBooks = (query) => {
   return fetch(`https://www.googleapis.com/books/v1/volumes?q=${query}`);
 };

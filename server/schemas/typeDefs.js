@@ -1,23 +1,20 @@
-const { gql } = require('apollo-server-express');
-
-const typeDefs = gql`
-  # This is a comment in GraphQL
-  # Define your types here
-  type Book {
-    bookId: String!
-    authors: [String]!
-    description: String!
-    title: String!
-    image: String
-    link: String
-  }
-
+const typeDefs = `
   type User {
     _id: ID!
-    username: String!
-    email: String!
-    bookCount: Int
+    username: String
+    email: String
+    password: String
     savedBooks: [Book]
+    bookCount: Int
+  }
+
+  type Book {
+    bookId: String
+    authors: [String]!
+    description: String
+    title: String
+    image: String
+    link: String
   }
 
   type Auth {
@@ -25,27 +22,15 @@ const typeDefs = gql`
     user: User
   }
 
-  # Inputs are special types that allow you to pass objects
-  input BookInput {
-    bookId: String!
-    authors: [String]!
-    description: String!
-    title: String!
-    image: String
-    link: String
-  }
-
-  # Define the Query type
   type Query {
     me: User
   }
 
-  # Define Mutation type
   type Mutation {
     login(email: String!, password: String!): Auth
     addUser(username: String!, email: String!, password: String!): Auth
-    saveBook(bookData: BookInput!): User
-    removeBook(bookId: String!): User
+    saveBook(authors:[String], description: String, title: String, bookId: String, image: String, link: String): User
+    removeBook(bookId: String): User
   }
 `;
 

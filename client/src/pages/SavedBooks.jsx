@@ -1,4 +1,3 @@
-//import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
 import { Container, Card, Button, Row, Col } from 'react-bootstrap';
 import { GET_ME } from '../utils/queries';
@@ -8,24 +7,21 @@ import { removeBookId } from '../utils/localStorage';
 
 const SavedBooks = () => {
   const { loading, data } = useQuery(GET_ME);
-  const [removeBook] = useMutation(REMOVE_BOOK);
-  
   const userData = data?.me || {};
 
-  // Create function that accepts the book's mongo _id value as param and deletes the book from the database
+  const [removeBook] = useMutation(REMOVE_BOOK, {
+    update(cache, { data: { removeBook } }) {
+      const { me } = cache.readQuery({ query: GET_ME });
+      cache.writeQuery({
+        query: GET_ME,
+        data: { me: { ...me, savedBooks: me.savedBooks.filter((book) => book.bookId !== removeBook.bookId) } },
+      });
+    },
+  });
+
   const handleDeleteBook = async (bookId) => {
     try {
-      await removeBook({
-        variables: { bookId },
-        update: (cache, { data: { removeBook } }) => {
-          cache.writeQuery({
-            query: GET_ME,
-            data: { me: removeBook },
-          });
-        },
-      });
-
-      // Upon success, remove book's id from localStorage
+      await removeBook({ variables: { bookId } });
       removeBookId(bookId);
     } catch (err) {
       console.error(err);
@@ -52,8 +48,8 @@ const SavedBooks = () => {
         <Row>
           {userData.savedBooks.map((book) => {
             return (
-              <Col md="4">
-                <Card key={book.bookId} border='dark'>
+              <Col md="4" key={book.bookId}>
+                <Card border='dark'>
                   {book.image ? <Card.Img src={book.image} alt={`The cover for ${book.title}`} variant='top' /> : null}
                   <Card.Body>
                     <Card.Title>{book.title}</Card.Title>

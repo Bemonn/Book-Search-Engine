@@ -1,81 +1,81 @@
-const { User } = require('../models');
-const { AuthenticationError } = require('apollo-server-express');
-const { signToken } = require('../utils/auth');
+const { User } = require("../models");
+const { signToken, AuthenticationError } = require("../utils/auth");
 
 const resolvers = {
   Query: {
     me: async (parent, args, context) => {
       if (context.user) {
-        const userData = await User.findOne({ _id: context.user._id })
-          .select('-__v -password')
-          .populate('savedBooks');
-
-        return userData;
+        return User.findOne({ _id: context.user._id });
       }
-
-      throw new AuthenticationError('Not logged in');
+      throw AuthenticationError;
     },
   },
 
   Mutation: {
-    addUser: async (parent, args) => {
-      const user = await User.create(args);
-      const token = signToken(user);
-
-      return { token, user };
-    },
-
     login: async (parent, { email, password }) => {
       const user = await User.findOne({ email });
 
       if (!user) {
-        throw new AuthenticationError('Incorrect credentials');
+        throw AuthenticationError;
       }
 
       const correctPw = await user.isCorrectPassword(password);
 
       if (!correctPw) {
-        throw new AuthenticationError('Incorrect credentials');
+        throw AuthenticationError;
       }
 
+      const token = signToken(user);
+
+      return { token, user };
+    },
+
+    addUser: async (parent, { username, email, password }) => {
+      const user = await User.create({ username, email, password });
       const token = signToken(user);
       return { token, user };
     },
 
-    saveBook: async (parent, { bookData }, context) => {
+    saveBook: async (
+      parent,
+      { authors, description, title, bookId, image, link },
+      context
+    ) => {
+      console.log("hello");
       if (context.user) {
-        try {
-          const updatedUser = await User.findByIdAndUpdate(
-            { _id: context.user._id },
-            { $push: { savedBooks: bookData } },
-            { new: true }
-          );
-          return updatedUser;
-        } catch (err) {
-          console.error('Error saving the book:', err);
-          throw new Error('Server Error: Unable to save book.');
-        }
+        const user = await User.findOneAndUpdate(
+          { _id: context.user._id },
+          {
+            $addToSet: {
+              savedBooks: {
+                authors,
+                description,
+                title,
+                bookId,
+                image,
+                link,
+              },
+            },
+          },
+          {
+            new: true,
+            runValidators: true,
+          }
+        );
+        return user;
       }
-
-      throw new AuthenticationError('You need to be logged in!');
+      throw AuthenticationError;
     },
 
     removeBook: async (parent, { bookId }, context) => {
       if (context.user) {
-        try {
-          const updatedUser = await User.findByIdAndUpdate(
-            { _id: context.user._id },
-            { $pull: { savedBooks: { bookId } } },
-            { new: true, useFindAndModify: false }
-          );
-          return updatedUser;
-        } catch (err) {
-          console.error('Error removing the book:', err);
-          throw new Error('Server Error: Unable to remove book.');
-        }
+        const user = await User.findOneAndUpdate(
+          { _id: context.user._id },
+          { $pull: { savedBooks: { bookId } } },
+          { runValidators: true, new: true }
+        );
+        return user;
       }
-
-      throw new AuthenticationError('You need to be logged in!');
     },
   },
 };
