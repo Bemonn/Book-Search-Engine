@@ -1,7 +1,8 @@
 const { gql } = require('apollo-server-express');
 
-// Construct a schema using GraphQL's schema language
 const typeDefs = gql`
+  # This is a comment in GraphQL
+  # Define your types here
   type Book {
     bookId: String!
     authors: [String]!
@@ -24,6 +25,7 @@ const typeDefs = gql`
     user: User
   }
 
+  # Inputs are special types that allow you to pass objects
   input BookInput {
     bookId: String!
     authors: [String]!
@@ -33,6 +35,12 @@ const typeDefs = gql`
     link: String
   }
 
+  # Define the Query type
+  type Query {
+    me: User
+  }
+
+  # Define Mutation type
   type Mutation {
     login(email: String!, password: String!): Auth
     addUser(username: String!, email: String!, password: String!): Auth

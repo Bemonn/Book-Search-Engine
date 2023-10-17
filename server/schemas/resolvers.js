@@ -43,39 +43,41 @@ const resolvers = {
     },
 
     saveBook: async (parent, { bookData }, context) => {
-        if (context.user) {
-          try {
-            const updatedUser = await User.findByIdAndUpdate(
-              { _id: context.user._id },
-              { $push: { savedBooks: bookData } },
-              { new: true }
-            );
-            return updatedUser;
-          } catch (err) {
-            console.error('Error saving the book:', err);
-            throw new Error('Server Error: Unable to save book.');
-          }
+      if (context.user) {
+        try {
+          const updatedUser = await User.findByIdAndUpdate(
+            { _id: context.user._id },
+            { $push: { savedBooks: bookData } },
+            { new: true }
+          );
+          return updatedUser;
+        } catch (err) {
+          console.error('Error saving the book:', err);
+          throw new Error('Server Error: Unable to save book.');
         }
-        throw new AuthenticationError('You need to be logged in!');
-      },
-  
-      removeBook: async (parent, { bookId }, context) => {
-        if (context.user) {
-          try {
-            const updatedUser = await User.findByIdAndUpdate(
-              { _id: context.user._id },
-              { $pull: { savedBooks: { bookId } } },
-              { new: true }
-            );
-            return updatedUser;
-          } catch (err) {
-            console.error('Error removing the book:', err);
-            throw new Error('Server Error: Unable to remove book.');
-          }
-        }
-        throw new AuthenticationError('You need to be logged in!');
-      },
+      }
+
+      throw new AuthenticationError('You need to be logged in!');
     },
-  };
+
+    removeBook: async (parent, { bookId }, context) => {
+      if (context.user) {
+        try {
+          const updatedUser = await User.findByIdAndUpdate(
+            { _id: context.user._id },
+            { $pull: { savedBooks: { bookId } } },
+            { new: true, useFindAndModify: false }
+          );
+          return updatedUser;
+        } catch (err) {
+          console.error('Error removing the book:', err);
+          throw new Error('Server Error: Unable to remove book.');
+        }
+      }
+
+      throw new AuthenticationError('You need to be logged in!');
+    },
+  },
+};
 
 module.exports = resolvers;
